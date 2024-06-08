@@ -1,0 +1,209 @@
+---
+title: "STATISTICAL ANALYSIS OF RISK FACTORS ASSOCIATED WITH SLEEP DISORDER"
+author: Vidya Sai Rashmitha Reddy Yellareddy
+date: "2023-11-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Project Objective:      
+
+The primary objective of this study is to investigate the relationships between key lifestyle factors and the occurrence of sleep disorders. Additionally, the study aims to explore how these lifestyle factors are associated with sleep duration, with a particular focus on variables such as physical activity and stress level.           
+
+# Hypotheses:      
+
+Null Hypothesis (H0): Various factors, including age, gender, occupation, physical activity, and stress level, do not have a statistically significant impact on the presence of sleep disorders.      
+
+Alternative Hypothesis (HA): Various factors, including age, gender, occupation, physical activity, and stress levels, have a statistically significant impact on the presence of sleep disorders.      
+
+# Methods:     
+
+**Data** :     
+The data for the analysis is obtained from Kaggle's sleep health and lifestyle dataset. The data contains of 374 participants data on their age, gender, occupation, sleep duration, quality of sleep, blood pressure, heart rate, stress level, BMI category, physical activity, daily steps and their sleep disorder status.   
+
+```{r}
+sleep_data <- read.csv("~/Desktop/Sleep_health_and_lifestyle_dataset.csv",header = TRUE, row.names = 1)
+```
+
+**loading libraries**:
+
+```{r,echo=FALSE}
+library(ggplot2)
+library(reshape2)
+library(dplyr)
+library(GGally)
+```
+**Preprocessing Data**:
+
+```{r}
+
+sleep_data_mod <- sleep_data
+sleep_data_mod$Gender <- ifelse(sleep_data_mod$Gender == 'Male', 1, 0)
+mapping_vector <- c("None" = 0, "Sleep Apnea" = 1, "Insomnia" = 2)
+sleep_data_mod$Sleep.Disorder <- mapping_vector[sleep_data_mod$Sleep.Disorder]
+
+data = sleep_data_mod[,c(1,2,4,5,6,7,10,12)]
+
+```
+
+**Descriptive Analysis**:
+
+```{r}
+# Calculate descriptive statistics for numerical variables
+sleep_data %>%
+  summarize(
+    mean = mean(Age),
+    median = median(Age),
+    sd = sd(Age),
+    iqr = IQR(Age)
+  ) %>%
+  print()
+
+# Define age ranges and corresponding colors
+age_ranges <- c( "26-35", "36-45", "46-55", "56-60")
+age_colors <- c("pink", "lightgreen", "lightblue", "purple")
+
+# Create a new variable that represents age ranges
+sleep_data$Age_Group <- cut(sleep_data$Age, breaks = c(26, 35, 45, 55, max(sleep_data$Age)), labels = age_ranges)
+
+# Create a histogram with custom colors for different age groups
+ggplot(sleep_data, aes(x = Age, fill = Age_Group)) +
+  geom_histogram() +
+  labs(title = "Distribution of Age by Age Group") +
+  scale_fill_manual(values = age_colors)
+
+
+# Create a histogram for Age with colors
+ggplot(sleep_data, aes(x = Age, fill = Gender)) +
+  geom_histogram() +
+  labs(title = "Distribution of Age")
+
+# Create boxplots for numerical variables
+ggplot(sleep_data, aes(x = Gender, y = Sleep.Duration, fill = Gender)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Sleep Duration by Gender")
+
+# Create frequency tables for categorical variables
+table(sleep_data$Sleep.Disorder)
+
+# Create a boxplot for Quality of Sleep by Gender
+ggplot(sleep_data, aes(x = Gender, y = Quality.of.Sleep, fill = Gender)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Quality of Sleep by Gender")
+
+# Create a boxplot for Physical Activity Level by Gender
+ggplot(sleep_data, aes(x = Gender, y = Physical.Activity.Level, fill = Gender)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Physical Activity Level by Gender")
+
+
+# Create a bar plot to visualize the distribution of Sleep Disorder by Gender
+ggplot(sleep_data, aes(x = Gender, fill = Sleep.Disorder)) +
+  geom_bar(position = "fill") +
+  labs(title = "Distribution of Sleep Disorder by Gender") +
+  scale_fill_manual(values = c("None" = "lightgreen", "Insomnia" = "purple", "Sleep Apnea" = "lightblue"))
+
+# Create a contingency table of "Sleep Disorder" and "Gender"
+contingency_table <- table(sleep_data$Sleep.Disorder, sleep_data$Gender)
+contingency_table
+```
+
+**Correlation Analysis**:
+
+```{r, fig.width=12, fig.height=10, fig.fullwidth=TRUE}
+correlation <- cor(data)
+ggpairs(sleep_data,columns = c(2,4:7,10), aes(color=Sleep.Disorder))
+```
+
+**Covariance Analysis**:
+
+```{r}
+covariance <- cov(data)
+
+diag(covariance) <- 0
+
+# Install and load the ggplot2 package if you haven't already
+library(ggplot2)
+library(reshape2)
+library(dplyr)
+
+# Get upper triangle of the correlation matrix
+get_upper_tri_no_diag <- function(cormat) {
+  # Set the lower triangular part (including the diagonal) to NA
+  cormat[lower.tri(cormat)] <- NA
+  return(cormat)
+}
+
+covariance_melt <- melt(get_upper_tri_no_diag(covariance))
+
+labels <- covariance_melt %>%
+  filter(!is.na(value)) %>%
+  mutate(value = round(value, 2))
+
+# Heatmap
+ggplot(data = covariance_melt, aes(Var2, Var1)) +
+  geom_tile(data = subset(covariance_melt, !is.na(value)), aes(fill = value), color = "black") +
+  geom_text(data = labels, aes(label = value), vjust = 1, size = 3) +
+  scale_fill_gradientn(colors = c("blue", "red"), na.value = "white", name = "Covariance") +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1)) +
+  coord_fixed()
+```
+
+**ANOVA**:    
+
+```{r}
+
+summary(aov(Sleep.Disorder ~ Gender + Age + Stress.Level + Physical.Activity.Level,sleep_data_mod))
+
+```
+**Pairwise T-test**
+
+```{r}
+
+gender <- t.test(sleep_data_mod$Gender, sleep_data_mod$Sleep.Disorder, paired = TRUE)
+
+age <- t.test(sleep_data_mod$Age, sleep_data_mod$Sleep.Disorder, paired = TRUE)
+
+physical_activity <- t.test(sleep_data_mod$Physical.Activity.Level, sleep_data_mod$Sleep.Disorder, paired = TRUE)
+
+sleep_duration <- t.test(sleep_data_mod$Sleep.Duration, sleep_data_mod$Sleep.Disorder, paired = TRUE)
+
+gender
+```
+
+```{r}
+age
+```
+
+```{r}
+physical_activity
+```
+
+```{r}
+sleep_duration
+```
+
+**Chi-square Test of independence**
+
+
+```{r}
+
+gender_table <- table(sleep_data_mod$Gender, sleep_data_mod$Sleep.Disorder)
+chisq.test(gender_table)
+
+```
+
+```{r}
+
+# Linear Regression Model
+linear_model <- lm(Sleep.Disorder ~ Gender + Age + Stress.Level + Physical.Activity.Level, data = sleep_data_mod)
+
+# Summary of the Linear Regression Model
+summary(linear_model)
+
+
+```
