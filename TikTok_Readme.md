@@ -88,8 +88,5 @@ The two-sample t-test resulted in a p-value significantly smaller than the 5% si
 ## Conclusion
 ### Business Insights
 - The analysis shows that there is a statistically significant difference in the average view counts between videos from verified and unverified accounts. This suggests there might be fundamental behavioral differences between these two groups of accounts.
-- It would be interesting to investigate the root cause of this behavioral difference. For example, do unverified accounts tend to post more clickbait-y videos? Or are unverified accounts associated with spam bots that help inflate view counts?
 
-### Recommendations
-- Investigate further to understand why unverified accounts have higher average view counts.
-- Consider building a regression model to predict view counts based on various features, including verified status.
+
